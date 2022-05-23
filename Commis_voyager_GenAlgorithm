@@ -1,0 +1,333 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int N = 10;//число городов
+int Resh = 6;//число изначальных решений, подбираемых случайно
+double perebor_sum;
+vector<vector<double>> distances(N, vector<double>(N, 0));
+vector<double> sum(Resh, 0);
+vector<vector<int>> solutions;
+typedef struct struct_mutation{
+        vector<int> v_mut;
+        int k_mut;
+    } type_mutation;
+
+void matrix()
+{
+    vector<double> x(N);
+    vector<double> y(N);
+    
+    for (int i = 0; i < N; i++) {
+        cout << "Координаты " << i + 1 << "-ого города: ";
+        cin >> x[i] >> y[i];
+    }
+    
+    for (int i = 0; i < N; i++) {
+	    for (int j = 0; j < N; j++) {
+			distances[i][j] = sqrt(pow(x[i]-x[j],2) + pow(y[i]-y[j],2));
+	    }
+    }
+    
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            cout << distances[i][j] << "\t";
+        }
+        cout << endl;
+    }
+    
+}
+
+vector<int> genetic(type_mutation (*_mutation)(bool verification(vector<int>& vect_check), int k), vector<int> (*_cross)(vector<int>* parent1, vector<int>& parent2, bool verification(vector<int>& vect_check), int x), void print_sol(), void sort_func(vector<double>& _v_2), bool verification(vector<int>& vect_check))
+{
+    vector<double> v2;
+    int i1,i2,l = 0;
+    type_mutation get_struct;
+    
+    for (int i = 0; i < solutions.size(); i++) {
+        for (int j = 0; j < N; j++) {
+            i1 = solutions[i][j];
+            i2 = solutions[i][j + 1];
+            sum[i] = sum[i] + distances[i1 - 1][i2 - 1];
+        }
+        v2.push_back(sum[i]);
+    }
+    
+    while (sum[0] - perebor_sum > 0.05*perebor_sum) {
+        
+        /**for (int j = 0; j < solutions.size(); j++) {
+            cout << sum[j] << " ";
+        }
+        cout << endl;**/
+        
+        sort_func(v2);
+        //"вырезаем" потомство из середины:
+        if(l != 0){solutions.erase(solutions.end() - Resh/2 - ((Resh/2)*(Resh/2)-Resh/2)/2, solutions.end() - Resh/2);}
+        /*****"вырезаем" потомство случайным образом:
+        if(l != 0){
+            while(solutions.size() != Resh){
+                solutions.erase(solutions.begin() + 1 + rand()%(solutions.size() - 1));
+            }
+        }
+        *****/
+        
+        //print_sol();
+        
+        //cout << endl << "Скрещивания" << endl;
+        for (int k = 0; k < Resh/2; k++) {
+            for (int i = k + 1; i < Resh/2; i++) {
+                solutions.push_back(_cross(&solutions[i], solutions[k], verification, i));
+            }
+        }
+        
+        //print_sol();
+        
+        //cout << endl << "Мутации" << endl;
+        for (int k = Resh/2; k < Resh; k++) {
+            get_struct = _mutation(verification, k);
+            solutions[k] = get_struct.v_mut;
+            k = get_struct.k_mut;
+        }
+        
+        sum.resize(solutions.size());
+        fill(sum.begin(), sum.end(), 0);
+        
+        //print_sol();
+        
+        v2.clear();
+        
+        for (int i = 0; i < solutions.size(); i++) {
+            for (int j = 0; j < N; j++) {
+                i1 = solutions[i][j];
+                i2 = solutions[i][j + 1];
+                sum[i] = sum[i] + distances[i1 - 1][i2 - 1];
+            }
+            v2.push_back(sum[i]);
+        }
+        
+        sort_func(v2);
+        l++;
+    }
+    
+    return solutions[0];
+}
+
+void generate_solutions(vector<int> generate_vector(bool verification(vector<int>& vect_check)), bool verification(vector<int>& vect_check))
+{
+    vector<int> v1(N + 1);
+    
+    for (int j = 0; j < Resh; j++) {
+        v1 = generate_vector(verification);
+        cout << j+1 << "-е решение: ";
+        for (int i = 0; i < N + 1; i++) {
+            cout << v1[i] << " ";
+        }
+        cout << endl;
+        solutions.push_back(v1);
+    }
+}
+
+vector<int> generate_vector(bool verification(vector<int>& vect_check))
+{
+    vector<int> _v_1(N + 1);
+    int tmp;
+    
+    do{
+        for (int i = 0; i < N; i++) {
+            tmp = rand()%N + 1;
+            _v_1[i] = tmp;
+            if (find(&_v_1[0], &_v_1[i], _v_1[i]) != &_v_1[i]) {
+                i=i-1;
+            }
+        }
+        _v_1[N] = _v_1[0];
+    }while(verification(_v_1) != true);
+    
+    return _v_1;
+}
+
+type_mutation mutation(bool verification(vector<int>& vect_check), int k)
+{
+    int i1,i2 = 0;
+    vector<int> v(N + 1);
+    type_mutation struct_mut;
+
+    i1 = rand()%N;
+    i2 = rand()%N;
+    v = solutions[k];
+    swap(v[i1], v[i2]);
+    v[N] = v[0];
+    if(verification(v) == false){
+        k-=1;
+        struct_mut.v_mut = solutions[k];
+        struct_mut.k_mut = k;
+        return struct_mut;
+    }
+    else{
+        struct_mut.v_mut = v;
+        struct_mut.k_mut = k;
+        return struct_mut;
+    }
+
+}
+
+vector<int> cross(vector<int>* parent1, vector<int>& parent2, bool verification(vector<int>& vect_check), int x)
+{
+    int temp,c;
+    int flag = 0;
+    int *p;
+    vector<int> v_1(2);
+    vector<int> child(N + 1, 0);
+    vector<vector<int>> v_2;
+    type_mutation get_struct_2;
+    do{
+        if(flag > 0){
+            get_struct_2 = mutation(verification, x);
+            *parent1 = get_struct_2.v_mut;
+        }
+        temp = rand()%N;
+        //cout << endl << temp << endl;
+        c = temp;
+        v_1 = {temp, (*parent1)[temp]};
+        v_2.push_back(v_1);
+        do{
+            p = find(&parent2[0], &parent2[N - 1], (*parent1)[temp]);//изменяем parent2
+            temp = p - &parent2[0];
+            v_1[0] = temp;
+            v_1[1] = (*parent1)[temp];
+            v_2.push_back(v_1);
+        } while((*parent1)[temp] != parent2[c]);
+        
+        for(int j = 0; j < N; j++) {
+            for(int i = 0; i < v_2.size(); i++){
+                if(j == v_2[i][0]){
+                    child[j] = v_2[i][1];
+                    break;
+                }
+                else{
+                    child[j] = parent2[j];
+                }
+            }
+        }
+        child[N] = child[0];
+        v_2.clear();
+        /**for(auto x : child){
+            cout << x << " ";
+        }**/
+        flag++;
+    }while(verification(child) != true);
+    
+    return child;
+}
+
+void print_sol()
+{
+    cout << endl;
+    for (int j = 0; j < solutions.size(); j++) {
+        for (int i = 0; i < N + 1; i++) {
+            cout << solutions[j][i] << " ";
+        }
+        cout << endl;
+    }
+}
+
+void sort_func(vector<double>& _v_2)
+{
+    vector<vector<int>> v = solutions;
+    sort(sum.begin(), sum.end());//сортировка в порядке возрастания всего пути
+    for (int i = 0; i < solutions.size(); i++) {
+        for (int j = 0; j < solutions.size(); j++) {
+            if (sum[i] == _v_2[j]){
+                solutions[i] = v[j];
+            }
+        }
+    }
+}
+
+vector<int> perebor(double summation(vector<int>& v))
+{
+    vector<int> v1;
+    vector<int> v2;
+    
+    for (int i = 0; i < N; i++)
+    {
+        v1.push_back(i + 1);
+    }
+    v1.push_back(v1[0]);
+    v2 = v1;
+    
+    do{
+        v1[N] = v1[0];
+        if(summation(v1) < summation(v2)){
+            v2 = v1;
+        }
+    }while(next_permutation(v1.begin(), v1.end() - 1));
+    perebor_sum = summation(v2);
+    
+    return v2;
+}
+
+double summation(vector<int>& v){
+    double sum = 0.0;
+    for (int j = 0; j < N; j++) {
+        sum = sum + distances[v[j] - 1][v[j + 1] - 1];
+    }
+    return sum;
+}
+
+bool verification(vector<int>& vect_check){
+    vector<int> vect;
+    
+    for(int i = 0; i < solutions.size(); i++){
+        vect = solutions[i];
+        for(int j = 0; j < N; j++){
+            for(int k = 0; k < N; k++){
+                vect[k] = vect[k + 1];
+            }
+            vect[N] = vect[0];
+            if(vect_check == vect){
+                return false;
+            }
+            reverse(vect.begin(), vect.end());
+            if(vect_check == vect){
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+int main()
+{
+    srand(time(0));
+    vector<int> vec_p;
+    vector<int> vec_g;
+    
+    matrix();
+    
+    auto start_p = clock();
+    vec_p = perebor(summation);
+    auto stop_p = clock();
+    
+    generate_solutions(generate_vector, verification);
+    
+    auto start_g = clock();
+    vec_g = genetic(&mutation, &cross, print_sol, sort_func, verification);
+    auto stop_g = clock();
+    
+    cout << endl << "Лучшее решение(ГА): ";
+    for(int it : vec_g){
+        cout << it << " ";
+    }
+    cout << " Расстояние: " << sum[0];
+    cout << " Время: " << 1000.0*(stop_g - start_g)/CLOCKS_PER_SEC << " мс";
+    
+    cout << endl << "Лучшее решение(перебор): ";
+    for(int it : vec_p){
+        cout << it << " ";
+    }
+    cout << " Расстояние: " << perebor_sum;
+    cout << " Время: " << 1000.0*(stop_p - start_p)/CLOCKS_PER_SEC << " мс";
+    
+    return 0;
+}
