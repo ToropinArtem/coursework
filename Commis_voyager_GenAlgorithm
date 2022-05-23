@@ -105,7 +105,7 @@ vector<int> genetic(type_mutation (*_mutation)(bool verification(vector<int>& ve
         }
         
         sort_func(v2);
-        l++;
+        if(l == 0){l++;}
     }
     
     return solutions[0];
