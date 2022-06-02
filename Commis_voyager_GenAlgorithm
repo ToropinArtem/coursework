@@ -52,6 +52,8 @@ vector<int> genetic(type_mutation (*_mutation)(bool verification(vector<int>& ve
         v2.push_back(sum[i]);
     }
     
+    sort_func(v2);
+    
     while (sum[0] - perebor_sum > 0.05*perebor_sum) {
         
         /**for (int j = 0; j < solutions.size(); j++) {
@@ -59,7 +61,6 @@ vector<int> genetic(type_mutation (*_mutation)(bool verification(vector<int>& ve
         }
         cout << endl;**/
         
-        sort_func(v2);
         //"вырезаем" потомство из середины:
         if(l != 0){solutions.erase(solutions.end() - Resh/2 - ((Resh/2)*(Resh/2)-Resh/2)/2, solutions.end() - Resh/2);}
         /*****"вырезаем" потомство случайным образом:
